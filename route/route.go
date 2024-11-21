@@ -16,8 +16,11 @@ func NewRouter(dbRepo model.DatabaseRepository) *mux.Router {
 	router.HandleFunc("/delete/user", userController.DeleteUserContoller).Methods("POST")
 	router.HandleFunc("/create/slot", userController.CreateSlotController).Methods("POST")
 	router.HandleFunc("/delete/slot", userController.DeleteSlotController).Methods("POST")
+	router.HandleFunc("/login/user", userController.UserLoginController).Methods("POST")
 
-	// userRouter := router.PathPrefix("/user").Subrouter()
+	userRouter := router.PathPrefix("/user").Subrouter()
+
+	userRouter.HandleFunc("/book", userController.SlotBookingController).Methods("POST")
 
 	return router
 }

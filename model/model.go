@@ -6,6 +6,13 @@ type DatabaseRepository interface {
 	DeleteUser(userid string) error
 	CreateSlot(slot *Slot) error
 	DeleteSlot(slotid string) error
+	CheckUserEmailExists(email string) (bool, error)
+	GetUserPassword(email string) (string, error)
+	GetSlots() ([]*Slot, error)
+	GetUserIdByEmail(email string) (string, error)
+	BookSlot(slotdId string, userId string) error
+	GetSlotStatus(slotId string) (int32, error)
+	CancelBooking(slotId string, userId string) error
 }
 
 type CreateUserRequest struct {
@@ -30,20 +37,30 @@ type User struct {
 type CreateSlotRequest struct {
 	Rfid    string `json:"rfid"`
 	SlotId  string `json:"slot_id"`
-	Status  string `json:"status"`
+	Status  int32  `json:"status"`
 	InTime  string `json:"in_time"`
 	OutTime string `json:"out_time"`
-	Amount  string `json:"amount"`
+	Amount  int32  `json:"amount"`
 }
 
 type Slot struct {
 	Rfid    string `json:"rfid"`
 	SlotId  string `json:"slot_id"`
-	Status  string `json:"status"`
+	Status  int32  `json:"status"`
 	InTime  string `json:"in_time"`
 	OutTime string `json:"out_time"`
-	Amount  string `json:"amount"`
+	Amount  int32  `json:"amount"`
 }
 type DeletSlotRequest struct {
 	SlotId string `json:"slot_id"`
+}
+
+type UserLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UserBookingRequest struct {
+	Email      string `json:"email"`
+	ArriveTime int32  `json:"arrive_time"`
 }

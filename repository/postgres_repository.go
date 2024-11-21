@@ -21,7 +21,7 @@ func (repo *PostgresRepository) InitDatabse() error {
 				user_id varchar(255) primary key,
 				name varchar(255) not null,
 				phone varchar(255) not null,
-				email varchar(255) not null,
+				email varchar(255) not null unique,
 				password varchar(255) not null
 			);`
 
@@ -44,7 +44,6 @@ func (repo *PostgresRepository) InitDatabse() error {
 
 	query3 := `create table if not exists bookings (
 				user_id varchar(255) not null,
-				booking_time varchar(255) not null,
 				foreign key (user_id) references users(user_id) on delete cascade
 			 );
 			 `
@@ -84,5 +83,116 @@ func (repo *PostgresRepository) DeleteSlot(slotId string) error {
 	if _, err := repo.db.Exec(query1, slotId); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *PostgresRepository) CheckUserEmailExists(email string) (bool, error) {
+	query := `select exists(select 1 from users where email=$1)`
+	var emailExists bool
+	err := repo.db.QueryRow(query, email).Scan(&emailExists)
+	return emailExists, err
+}
+
+func (repo *PostgresRepository) GetUserPassword(email string) (string, error) {
+	query := `select password from users where email=$1`
+	var password string
+	err := repo.db.QueryRow(query, email).Scan(&password)
+	return password, err
+}
+
+func (repo *PostgresRepository) GetSlots() ([]*model.Slot, error) {
+	query := `select * from slots;`
+
+	rows, err := repo.db.Query(query)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var slots []*model.Slot
+
+	for rows.Next() {
+		var slot model.Slot
+		if err := rows.Scan(&slot.SlotId, &slot.Rfid, &slot.Status, &slot.Amount, &slot.InTime, &slot.OutTime); err != nil {
+			return nil, err
+		}
+
+		slots = append(slots, &slot)
+	}
+
+	return slots, nil
+}
+
+func (repo *PostgresRepository) GetUserIdByEmail(email string) (string, error) {
+	query := `select user_id from users where email = $1`
+	var userId string
+	err := repo.db.QueryRow(query, email).Scan(&userId)
+	return userId, err
+}
+
+func (repo *PostgresRepository) BookSlot(slotdId string, userId string) error {
+
+	query1 := `update slots set status=2 where slot_id=$1`
+	query2 := `insert into bookings (user_id) values ($1)`
+
+	tx, err := repo.db.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(query1, slotdId); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(query2, userId); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+func (repo *PostgresRepository) GetSlotStatus(slotId string) (int32, error) {
+	query := `select status from slots where slot_id = $1`
+
+	var status int32
+
+	if err := repo.db.QueryRow(query, slotId).Scan(&status); err != nil {
+		return -1, err
+	}
+
+	return status, nil
+}
+
+func (repo *PostgresRepository) CancelBooking(slotId string, userId string) error {
+	query1 := `update slots set status = 0 where slot_id = $1`
+	query2 := `delete from bookings where user_id = $1`
+
+	tx, err := repo.db.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(query1, slotId); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(query2, userId); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	return nil
 }
