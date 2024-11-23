@@ -130,7 +130,7 @@ func (repo *PostgresRepository) GetUserIdByEmail(email string) (string, error) {
 	return userId, err
 }
 
-func (repo *PostgresRepository) BookSlot(slotdId string, userId string) error {
+func (repo *PostgresRepository) OnlineBookSlot(slotdId string, userId string) error {
 
 	query1 := `update slots set status=2 where slot_id=$1`
 	query2 := `insert into bookings (user_id) values ($1)`
@@ -158,6 +158,12 @@ func (repo *PostgresRepository) BookSlot(slotdId string, userId string) error {
 	return nil
 }
 
+func (repo *PostgresRepository) OfflineBookSlot(slotId string) error {
+	query := `update slots set status=2 where slot_id=$1`
+	_, err := repo.db.Exec(query, slotId)
+	return err
+}
+
 func (repo *PostgresRepository) GetSlotStatus(slotId string) (int32, error) {
 	query := `select status from slots where slot_id = $1`
 
@@ -170,7 +176,7 @@ func (repo *PostgresRepository) GetSlotStatus(slotId string) (int32, error) {
 	return status, nil
 }
 
-func (repo *PostgresRepository) CancelBooking(slotId string, userId string) error {
+func (repo *PostgresRepository) CancelOnlineBooking(slotId string, userId string) error {
 	query1 := `update slots set status = 0 where slot_id = $1`
 	query2 := `delete from bookings where user_id = $1`
 
@@ -195,4 +201,10 @@ func (repo *PostgresRepository) CancelBooking(slotId string, userId string) erro
 	}
 
 	return nil
+}
+
+func (repo *PostgresRepository) CancelOfflineBooking(slotId string) error {
+	query := `update slots set status=0 where slot_id=$1`
+	_, err := repo.db.Exec(query, slotId)
+	return err
 }

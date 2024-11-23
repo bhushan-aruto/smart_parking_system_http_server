@@ -280,7 +280,7 @@ func (c *UserController) SlotBookingController(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err := c.dbRepo.BookSlot(slotId, userId); err != nil {
+	if err := c.dbRepo.OnlineBookSlot(slotId, userId); err != nil {
 		log.Printf("error occurred with database while booking the slot, Error -> %v", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "error occurred with database")
@@ -297,7 +297,7 @@ func (c *UserController) SlotBookingController(w http.ResponseWriter, r *http.Re
 		}
 
 		if slotStatus == 2 {
-			if err := c.dbRepo.CancelBooking(slotId, userId); err != nil {
+			if err := c.dbRepo.CancelOnlineBooking(slotId, userId); err != nil {
 				log.Printf("error occurred while canceling the booking, err -> %v", err.Error())
 				return
 			}

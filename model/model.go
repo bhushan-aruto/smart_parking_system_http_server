@@ -10,9 +10,11 @@ type DatabaseRepository interface {
 	GetUserPassword(email string) (string, error)
 	GetSlots() ([]*Slot, error)
 	GetUserIdByEmail(email string) (string, error)
-	BookSlot(slotdId string, userId string) error
+	OnlineBookSlot(slotdId string, userId string) error
 	GetSlotStatus(slotId string) (int32, error)
-	CancelBooking(slotId string, userId string) error
+	CancelOnlineBooking(slotId string, userId string) error
+	OfflineBookSlot(slotId string) error
+	CancelOfflineBooking(slotId string) error
 }
 
 type CreateUserRequest struct {
@@ -63,4 +65,15 @@ type UserLoginRequest struct {
 type UserBookingRequest struct {
 	Email      string `json:"email"`
 	ArriveTime int32  `json:"arrive_time"`
+}
+
+type GetSlotUsageRequest struct {
+	Rfid string `json:"rfid"`
+}
+
+//responses
+
+type GateOpenResponse struct {
+	Status bool   `json:"status"`
+	SlotId string `json:"slot_id"`
 }
