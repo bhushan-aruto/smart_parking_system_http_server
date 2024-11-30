@@ -71,9 +71,9 @@ type GetSlotUsageRequest struct {
 	Rfid string `json:"rfid"`
 }
 
-//responses
-
+// responses
 type GateOpenResponse struct {
 	Status bool   `json:"status"`
 	SlotId string `json:"slot_id"`
 }
+

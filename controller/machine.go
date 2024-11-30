@@ -86,4 +86,6 @@ func (c *MachineController) GetSlotUsageAmount(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	
+
 }
