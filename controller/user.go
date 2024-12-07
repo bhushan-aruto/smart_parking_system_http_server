@@ -13,17 +13,14 @@ import (
 )
 
 type UserController struct {
-	dbRepo model.DatabaseRepository
+	dbRepo    model.DatabaseRepository
+	cacheRepo model.CacheRepository
 }
 
-func NewUserController(dbRepo model.DatabaseRepository) *UserController {
+func NewUserController(dbRepo model.DatabaseRepository, cacheRepo model.CacheRepository) *UserController {
 	return &UserController{
-		dbRepo: dbRepo,
-	}
-}
-func NewSlotController(dbRepo model.DatabaseRepository) *UserController {
-	return &UserController{
-		dbRepo: dbRepo,
+		dbRepo:    dbRepo,
+		cacheRepo: cacheRepo,
 	}
 }
 
@@ -94,8 +91,10 @@ func (c *UserController) DeleteUserContoller(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "user deleted successfully")
 }
+
 func (c *UserController) CreateSlotController(w http.ResponseWriter, r *http.Request) {
 	var request model.CreateSlotRequest
+
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "invalid json format")
@@ -114,45 +113,18 @@ func (c *UserController) CreateSlotController(w http.ResponseWriter, r *http.Req
 		return
 
 	}
-	if request.Status < 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "status cannot be negative")
-		return
-	}
-	if request.InTime == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Intime cannot be empty")
-		return
 
-	}
-	if request.OutTime == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Outtime cannot be empty")
-		return
-	}
-	if request.Amount == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Amount cannot be Zero")
-		return
-	}
-	slot := model.Slot{
-		Rfid:    request.Rfid,
-		SlotId:  request.SlotId,
-		Status:  request.Status,
-		InTime:  request.InTime,
-		OutTime: request.OutTime,
-		Amount:  request.Amount,
-	}
-	if err := c.dbRepo.CreateSlot(&slot); err != nil {
+	if err := c.cacheRepo.CreateSlot(request.SlotId, request.Rfid); err != nil {
+		log.Printf("error occurred with redis while creating the slot, Error -> %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("error occurred with database while creating slot, Error -> %v\n", err.Error())
-		fmt.Fprintf(w, "error occurred with database")
+		fmt.Fprintf(w, "error occurred with redis")
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "slot created successfully")
 }
+
 func (c *UserController) DeleteSlotController(w http.ResponseWriter, r *http.Request) {
 	var request model.DeletSlotRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -160,12 +132,14 @@ func (c *UserController) DeleteSlotController(w http.ResponseWriter, r *http.Req
 		fmt.Fprintf(w, "invalid json format")
 		return
 	}
-	if err := c.dbRepo.DeleteSlot(request.SlotId); err != nil {
+
+	if err := c.cacheRepo.DeleteSlot(request.SlotId); err != nil {
+		log.Printf("error occurred with redis while deleting the slot, Error -> %v\n", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("error occurred with database while deleting slot, Error -> %v\n", err.Error())
-		fmt.Fprintf(w, "error occurred with database")
+		fmt.Fprintf(w, "error occurred with redis")
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "slot deleted succesfully")
 }
@@ -248,12 +222,12 @@ func (c *UserController) SlotBookingController(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	slots, err := c.dbRepo.GetSlots()
+	slots, err := c.cacheRepo.GetlSlots("s1", "s2", "s3", "s4")
 
 	if err != nil {
-		log.Printf("error occurred with database while getting slots, Error -> %v", err.Error())
+		log.Printf("error occurred with redis while getting slots, Error -> %v", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "error occurred with database")
+		fmt.Fprintf(w, "error occurred with redis")
 		return
 	}
 
@@ -280,7 +254,14 @@ func (c *UserController) SlotBookingController(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err := c.dbRepo.OnlineBookSlot(slotId, userId); err != nil {
+	if err := c.cacheRepo.OnlineBookSlot(slotId); err != nil {
+		log.Printf("error occurred with redis while booking the slot, Error -> %v", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "error occurred with redis")
+		return
+	}
+
+	if err := c.dbRepo.OnlineBookSlot(userId); err != nil {
 		log.Printf("error occurred with database while booking the slot, Error -> %v", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "error occurred with database")
@@ -289,7 +270,7 @@ func (c *UserController) SlotBookingController(w http.ResponseWriter, r *http.Re
 
 	go func() {
 		time.Sleep(time.Second * time.Duration(request.ArriveTime))
-		slotStatus, err := c.dbRepo.GetSlotStatus(slotId)
+		slotStatus, err := c.cacheRepo.GetSlotStatus(slotId)
 
 		if err != nil {
 			log.Printf("error occurred while checking the slot status, Error -> %v", err.Error())
@@ -297,8 +278,14 @@ func (c *UserController) SlotBookingController(w http.ResponseWriter, r *http.Re
 		}
 
 		if slotStatus == 2 {
-			if err := c.dbRepo.CancelOnlineBooking(slotId, userId); err != nil {
-				log.Printf("error occurred while canceling the booking, err -> %v", err.Error())
+
+			if err := c.cacheRepo.CancelOnlineBooking(slotId); err != nil {
+				log.Printf("error occurred with redis while canceling the booking, err -> %v", err.Error())
+				return
+			}
+
+			if err := c.dbRepo.CancelOnlineBooking(userId); err != nil {
+				log.Printf("error occurred with database while canceling the booking, err -> %v", err.Error())
 				return
 			}
 		}
