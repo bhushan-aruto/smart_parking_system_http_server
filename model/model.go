@@ -13,7 +13,7 @@ type DatabaseRepository interface {
 
 type CacheRepository interface {
 	CreateSlot(slotId string, rfid string) error
-	DeleteSlot(slotId string) error
+	DeleteSlot(slotId string, rfid string) error
 	GetlSlots(slotdIds ...string) ([]*Slot, error)
 	OnlineBookSlot(slotId string) error
 	GetSlotStatus(slotId string) (int32, error)
@@ -53,6 +53,7 @@ type Slot struct {
 }
 type DeletSlotRequest struct {
 	SlotId string `json:"slot_id"`
+	Rfid   string `json:"rfid"`
 }
 
 type UserLoginRequest struct {

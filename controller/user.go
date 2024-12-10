@@ -133,7 +133,7 @@ func (c *UserController) DeleteSlotController(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := c.cacheRepo.DeleteSlot(request.SlotId); err != nil {
+	if err := c.cacheRepo.DeleteSlot(request.SlotId, request.Rfid); err != nil {
 		log.Printf("error occurred with redis while deleting the slot, Error -> %v\n", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "error occurred with redis")

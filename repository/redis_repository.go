@@ -26,9 +26,9 @@ func (repo *RedisRepository) CreateSlot(slotId string, rfid string) error {
 		return err
 	}
 
-	slotRfid := fmt.Sprintf("%v_rfid", slotId)
+	slotRfid := fmt.Sprintf("%v", rfid)
 
-	if _, err := repo.cache.Set(context.Background(), slotRfid, rfid, time.Duration(0)).Result(); err != nil {
+	if _, err := repo.cache.Set(context.Background(), slotRfid, slotId, time.Duration(0)).Result(); err != nil {
 		return err
 	}
 
@@ -48,11 +48,11 @@ func (repo *RedisRepository) CreateSlot(slotId string, rfid string) error {
 
 }
 
-func (repo *RedisRepository) DeleteSlot(slotId string) error {
+func (repo *RedisRepository) DeleteSlot(slotId string, rfid string) error {
 
 	slotStatus := fmt.Sprintf("%v_status", slotId)
 
-	slotRfid := fmt.Sprintf("%v_rfid", slotId)
+	slotRfid := fmt.Sprintf("%v", rfid)
 
 	slotInTime := fmt.Sprintf("%v_in_time", slotId)
 
@@ -71,12 +71,6 @@ func (repo *RedisRepository) GetlSlots(slotdIds ...string) ([]*model.Slot, error
 
 		slotStatusKey := fmt.Sprintf("%v_status", slotId)
 
-		slotRfidKey := fmt.Sprintf("%v_rfid", slotId)
-
-		slotInTimeKey := fmt.Sprintf("%v_in_time", slotId)
-
-		slotOutTimeKey := fmt.Sprintf("%v_out_time", slotId)
-
 		slotStatusStr, err := repo.cache.Get(context.Background(), slotStatusKey).Result()
 
 		if err != nil {
@@ -91,23 +85,11 @@ func (repo *RedisRepository) GetlSlots(slotdIds ...string) ([]*model.Slot, error
 
 		slotStatusInt32 := int32(slotStatusInt)
 
-		slotRfid, err := repo.cache.Get(context.Background(), slotRfidKey).Result()
+		slotRfid := ""
 
-		if err != nil {
-			return nil, err
-		}
+		slotInTime := ""
 
-		slotInTime, err := repo.cache.Get(context.Background(), slotInTimeKey).Result()
-
-		if err != nil {
-			return nil, err
-		}
-
-		slotOutTime, err := repo.cache.Get(context.Background(), slotOutTimeKey).Result()
-
-		if err != nil {
-			return nil, err
-		}
+		slotOutTime := ""
 
 		slot := &model.Slot{
 			SlotId:  slotId,
