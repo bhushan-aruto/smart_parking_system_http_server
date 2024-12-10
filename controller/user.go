@@ -278,16 +278,15 @@ func (c *UserController) SlotBookingController(w http.ResponseWriter, r *http.Re
 		}
 
 		if slotStatus == 2 {
-
 			if err := c.cacheRepo.CancelOnlineBooking(slotId); err != nil {
 				log.Printf("error occurred with redis while canceling the booking, err -> %v", err.Error())
 				return
 			}
+		}
 
-			if err := c.dbRepo.CancelOnlineBooking(userId); err != nil {
-				log.Printf("error occurred with database while canceling the booking, err -> %v", err.Error())
-				return
-			}
+		if err := c.dbRepo.CancelOnlineBooking(userId); err != nil {
+			log.Printf("error occurred with database while canceling the booking, err -> %v", err.Error())
+			return
 		}
 	}()
 
