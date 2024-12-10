@@ -31,7 +31,7 @@ func main() {
 		log.Fatalf("failed to connect to redis, Error -> %v\n", err)
 	}
 
-	log.Printf("conneced to database")
+	log.Printf("conneced to redis")
 
 	postgresRepository := repository.NewPostgresRepository(db)
 
